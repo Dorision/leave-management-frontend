@@ -1,0 +1,113 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container-fluid">
+    <!-- Brand -->
+    <a class="navbar-brand fw-bold" routerLink="/">
+      <i class="fas fa-calendar-check me-2"></i>
+      Leave Management
+    </a>
+
+    <!-- Mobile Toggle -->
+    <button 
+      class="navbar-toggler" 
+      type="button" 
+      data-bs-toggle="collapse" 
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav" 
+      aria-expanded="false" 
+      aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Navigation Items -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item" *ngFor="let item of navItems">
+          <div *ngIf="!item.children; else hasChildren">
+            <a 
+              class="nav-link" 
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              *ngIf="hasPermission(item.roles)">
+              <i [class]="item.icon + ' me-1'"></i>
+              {{ item.label }}
+            </a>
+          </div>
+          
+          <ng-template #hasChildren>
+            <div class="nav-item dropdown" *ngIf="hasPermission(item.roles)">
+              <a 
+                class="nav-link dropdown-toggle" 
+                href="#" 
+                role="button" 
+                data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i [class]="item.icon + ' me-1'"></i>
+                {{ item.label }}
+              </a>
+              <ul class="dropdown-menu">
+                <li *ngFor="let child of item.children">
+                  <a 
+                    class="dropdown-item" 
+                    [routerLink]="child.route"
+                    *ngIf="hasPermission(child.roles)">
+                    <i [class]="child.icon + ' me-2'"></i>
+                    {{ child.label }}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </ng-template>
+        </li>
+      </ul>
+
+      <!-- User Menu -->
+      <ul class="navbar-nav" *ngIf="currentUser">
+        <li class="nav-item dropdown">
+          <a 
+            class="nav-link dropdown-toggle d-flex align-items-center" 
+            href="#" 
+            role="button" 
+            data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <div class="user-avatar me-2">
+              <i class="fas fa-user-circle fa-lg"></i>
+            </div>
+            <div class="user-info d-none d-md-block">
+              <div class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</div>
+              <div class="user-role text-muted small">{{ getRoleLabel(currentUser.role) }}</div>
+            </div>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <div class="dropdown-header">
+                <strong>{{ currentUser.firstName }} {{ currentUser.lastName }}</strong>
+                <br>
+                <small class="text-muted">{{ currentUser.email }}</small>
+              </div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" [routerLink]="getProfileRoute()">
+                <i class="fas fa-user me-2"></i>
+                Profile
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="#" (click)="changePassword($event)">
+                <i class="fas fa-key me-2"></i>
+                Change Password
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item text-danger" href="#" (click)="logout($event)">
+                <i class="fas fa-sign-out-alt me-2"></i>
+                Logout
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

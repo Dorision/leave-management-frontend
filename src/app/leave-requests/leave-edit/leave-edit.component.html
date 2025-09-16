@@ -1,0 +1,213 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Edit Leave Request</h5>
+          <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
+            <i class="fas fa-arrow-left me-2"></i>
+            Back
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Loading State -->
+          <div class="text-center py-5" *ngIf="isLoading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading leave request...</p>
+          </div>
+
+          <!-- Error State -->
+          <div class="alert alert-danger" *ngIf="errorMessage && !isLoading">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ errorMessage }}
+            <button class="btn btn-outline-danger btn-sm ms-2" (click)="loadLeaveRequest()">
+              <i class="fas fa-redo me-1"></i>
+              Retry
+            </button>
+          </div>
+
+          <!-- Edit Form -->
+          <div *ngIf="!isLoading && !errorMessage && leaveForm">
+            <!-- Current Status Info -->
+            <div class="alert alert-info mb-4" *ngIf="originalRequest">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <div class="flex-grow-1">
+                  <strong>Editing Request:</strong> {{ getLeaveTypeLabel(originalRequest.leaveType) }} - 
+                  {{ formatDate(originalRequest.startDate) }} to {{ formatDate(originalRequest.endDate) }}
+                  <span [class]="'badge ms-2 ' + getStatusBadgeClass(originalRequest.status)">
+                    {{ getStatusLabel(originalRequest.status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Edit Form -->
+            <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()">
+              <!-- Leave Type -->
+              <div class="mb-3">
+                <label for="leaveType" class="form-label">Leave Type <span class="text-danger">*</span></label>
+                <select 
+                  class="form-select" 
+                  id="leaveType" 
+                  formControlName="leaveType"
+                  [class.is-invalid]="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
+                  <option value="">Select leave type</option>
+                  <option *ngFor="let type of leaveTypes" [value]="type.value">{{ type.label }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
+                  Please select a leave type.
+                </div>
+              </div>
+
+              <!-- Date Range -->
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="startDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <input 
+                      type="date" 
+                      class="form-control" 
+                      id="startDate" 
+                      formControlName="startDate"
+                      [class.is-invalid]="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
+                    <div class="invalid-feedback" *ngIf="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
+                      <div *ngIf="leaveForm.get('startDate')?.errors?.['required']">Start date is required.</div>
+                      <div *ngIf="leaveForm.get('startDate')?.errors?.['pastDate']">Start date cannot be in the past.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="endDate" class="form-label">End Date <span class="text-danger">*</span></label>
+                    <input 
+                      type="date" 
+                      class="form-control" 
+                      id="endDate" 
+                      formControlName="endDate"
+                      [class.is-invalid]="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
+                    <div class="invalid-feedback" *ngIf="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
+                      <div *ngIf="leaveForm.get('endDate')?.errors?.['required']">End date is required.</div>
+                      <div *ngIf="leaveForm.get('endDate')?.errors?.['beforeStart']">End date must be after start date.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Workdays Display -->
+              <div class="mb-3" *ngIf="workdays > 0">
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  This request is for <strong>{{ workdays }}</strong> working day(s).
+                  <span *ngIf="originalRequest && originalRequest.days !== workdays" class="text-warning">
+                    (Changed from {{ originalRequest.days }} day(s))
+                  </span>
+                </div>
+              </div>
+
+              <!-- Reason -->
+              <div class="mb-3">
+                <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                <textarea 
+                  class="form-control" 
+                  id="reason" 
+                  rows="3" 
+                  formControlName="reason"
+                  placeholder="Please provide a reason for your leave request"
+                  [class.is-invalid]="leaveForm.get('reason')?.invalid && leaveForm.get('reason')?.touched"></textarea>
+                <div class="invalid-feedback" *ngIf="leaveForm.get('reason')?.invalid && leaveForm.get('reason')?.touched">
+                  Please provide a reason for your leave request.
+                </div>
+              </div>
+
+              <!-- Changes Summary -->
+              <div class="card bg-light mb-3" *ngIf="hasChanges()">
+                <div class="card-body">
+                  <h6 class="card-title text-primary">
+                    <i class="fas fa-edit me-2"></i>
+                    Summary of Changes
+                  </h6>
+                  <ul class="mb-0">
+                    <li *ngIf="hasFieldChanged('leaveType')">
+                      <strong>Leave Type:</strong> 
+                      {{ getLeaveTypeLabel(originalRequest?.leaveType || '') }} 
+                      → {{ getLeaveTypeLabel(leaveForm.get('leaveType')?.value) }}
+                    </li>
+                    <li *ngIf="hasFieldChanged('startDate')">
+                      <strong>Start Date:</strong> 
+                      {{ formatDate(originalRequest?.startDate || '') }} 
+                      → {{ formatDate(leaveForm.get('startDate')?.value) }}
+                    </li>
+                    <li *ngIf="hasFieldChanged('endDate')">
+                      <strong>End Date:</strong> 
+                      {{ formatDate(originalRequest?.endDate || '') }} 
+                      → {{ formatDate(leaveForm.get('endDate')?.value) }}
+                    </li>
+                    <li *ngIf="hasFieldChanged('reason')">
+                      <strong>Reason:</strong> Updated
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Warning for pending requests -->
+              <div class="alert alert-warning" *ngIf="originalRequest?.status === 'PENDING'">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Note:</strong> This request is currently pending approval. Updating it may reset the approval process.
+              </div>
+
+              <!-- Update Error -->
+              <div class="alert alert-danger" *ngIf="updateErrorMessage">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ updateErrorMessage }}
+              </div>
+
+              <!-- Submit Buttons -->
+              <div class="d-flex justify-content-between">
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary"
+                  (click)="goBack()"
+                  [disabled]="isSubmitting">
+                  <i class="fas fa-times me-2"></i>
+                  Cancel
+                </button>
+                <div class="d-flex gap-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-warning"
+                    (click)="resetForm()"
+                    [disabled]="isSubmitting || !hasChanges()">
+                    <i class="fas fa-undo me-2"></i>
+                    Reset Changes
+                  </button>
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary"
+                    [disabled]="leaveForm.invalid || isSubmitting || !hasChanges()">
+                    <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <i *ngIf="!isSubmitting" class="fas fa-save me-2"></i>
+                    {{ isSubmitting ? 'Updating...' : 'Update Request' }}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Not Found State -->
+          <div class="text-center py-5" *ngIf="!isLoading && !errorMessage && !leaveForm">
+            <i class="fas fa-search fa-3x mb-3 text-muted opacity-50"></i>
+            <h6 class="text-muted">Leave Request Not Found</h6>
+            <p class="text-muted">The requested leave request could not be found or cannot be edited.</p>
+            <button class="btn btn-primary" (click)="goBack()">
+              <i class="fas fa-arrow-left me-2"></i>
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

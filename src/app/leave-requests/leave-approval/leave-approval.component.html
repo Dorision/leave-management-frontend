@@ -1,0 +1,267 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="card-title mb-0">Leave Requests - Approval Management</h5>
+          <small class="text-muted">Review and approve/reject subordinate leave requests</small>
+        </div>
+        <div class="card-body">
+          <!-- Success Message -->
+          <div class="alert alert-success alert-dismissible fade show" *ngIf="successMessage" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ successMessage }}
+            <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+          </div>
+
+          <!-- Filters -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <select class="form-select" [(ngModel)]="selectedStatus" (ngModelChange)="filterRequests()">
+                <option value="">All Statuses</option>
+                <option *ngFor="let status of statusOptions" [value]="status.value">{{ status.label }}</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" [(ngModel)]="selectedType" (ngModelChange)="filterRequests()">
+                <option value="">All Types</option>
+                <option *ngFor="let type of leaveTypes" [value]="type.value">{{ type.label }}</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Search employee..."
+                [(ngModel)]="searchTerm"
+                (ngModelChange)="filterRequests()">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" [(ngModel)]="sortBy" (ngModelChange)="sortRequests()">
+                <option value="submitted">Sort by Date Submitted</option>
+                <option value="startDate">Sort by Start Date</option>
+                <option value="employee">Sort by Employee</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Statistics Cards -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                  <h5 class="card-title">{{ pendingCount }}</h5>
+                  <p class="card-text">Pending Review</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                  <h5 class="card-title">{{ approvedCount }}</h5>
+                  <p class="card-text">Approved</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                  <h5 class="card-title">{{ rejectedCount }}</h5>
+                  <p class="card-text">Rejected</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                  <h5 class="card-title">{{ totalRequests }}</h5>
+                  <p class="card-text">Total Requests</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div class="text-center py-5" *ngIf="isLoading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading leave requests...</p>
+          </div>
+
+          <!-- Error State -->
+          <div class="alert alert-danger" *ngIf="errorMessage">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ errorMessage }}
+            <button class="btn btn-outline-danger btn-sm ms-2" (click)="loadLeaveRequests()">
+              <i class="fas fa-redo me-1"></i>
+              Retry
+            </button>
+          </div>
+
+          <!-- Empty State -->
+          <div class="text-center py-5" *ngIf="!isLoading && !errorMessage && filteredRequests.length === 0 && leaveRequests.length === 0">
+            <i class="fas fa-clipboard-list fa-3x mb-3 text-muted opacity-50"></i>
+            <h6 class="text-muted">No Leave Requests</h6>
+            <p class="text-muted">There are no leave requests from your subordinates yet.</p>
+          </div>
+
+          <!-- No Results State -->
+          <div class="text-center py-5" *ngIf="!isLoading && !errorMessage && filteredRequests.length === 0 && leaveRequests.length > 0">
+            <i class="fas fa-search fa-3x mb-3 text-muted opacity-50"></i>
+            <h6 class="text-muted">No Matching Results</h6>
+            <p class="text-muted">No leave requests match your current filters.</p>
+            <button class="btn btn-outline-secondary" (click)="clearFilters()">
+              <i class="fas fa-times me-2"></i>
+              Clear Filters
+            </button>
+          </div>
+
+          <!-- Leave Requests Cards -->
+          <div class="row" *ngIf="!isLoading && !errorMessage && paginatedRequests.length > 0">
+            <div class="col-lg-6 mb-4" *ngFor="let request of paginatedRequests; trackBy: trackByRequestId">
+              <div class="card h-100 border-start border-4" [class]="'border-' + getStatusColor(request.status)">
+                <div class="card-header d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 class="mb-1">{{ getEmployeeName(request) }}</h6>
+                    <small class="text-muted">{{ request.user?.email }}</small>
+                  </div>
+                  <span [class]="'badge ' + getStatusBadgeClass(request.status)">
+                    {{ getStatusLabel(request.status) }}
+                  </span>
+                </div>
+                <div class="card-body">
+                  <div class="row mb-3">
+                    <div class="col-6">
+                      <small class="text-muted">Type</small>
+                      <div class="fw-medium">{{ getLeaveTypeLabel(request.leaveType) }}</div>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted">Duration</small>
+                      <div class="fw-medium">{{ request.days || '-' }} day(s)</div>
+                    </div>
+                  </div>
+                  
+                  <div class="row mb-3">
+                    <div class="col-6">
+                      <small class="text-muted">Start Date</small>
+                      <div class="fw-medium">{{ formatDate(request.startDate) }}</div>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted">End Date</small>
+                      <div class="fw-medium">{{ formatDate(request.endDate) }}</div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <small class="text-muted">Reason</small>
+                    <div class="text-break">{{ request.reason }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <small class="text-muted">Submitted</small>
+                    <div>{{ formatDate(request.submittedAt) }}</div>
+                  </div>
+
+                  <!-- Manager Comments (if any) -->
+                  <div class="mb-3" *ngIf="request.managerComment">
+                    <small class="text-muted">Manager Comments</small>
+                    <div class="text-break">{{ request.managerComment }}</div>
+                  </div>
+                </div>
+                
+                <div class="card-footer bg-transparent" *ngIf="request.status === 'PENDING'">
+                  <div class="d-flex gap-2">
+                    <button 
+                      class="btn btn-success btn-sm flex-fill"
+                      (click)="openDecisionModal(request, 'APPROVED')"
+                      [disabled]="isProcessing">
+                      <i class="fas fa-check me-1"></i>
+                      Approve
+                    </button>
+                    <button 
+                      class="btn btn-danger btn-sm flex-fill"
+                      (click)="openDecisionModal(request, 'REJECTED')"
+                      [disabled]="isProcessing">
+                      <i class="fas fa-times me-1"></i>
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <nav *ngIf="totalPages > 1" aria-label="Leave requests pagination">
+            <ul class="pagination justify-content-center">
+              <li class="page-item" [class.disabled]="currentPage === 1">
+                <button class="page-link" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+              </li>
+              <li class="page-item" 
+                  *ngFor="let page of getPageNumbers()" 
+                  [class.active]="page === currentPage">
+                <button class="page-link" (click)="goToPage(page)">{{ page }}</button>
+              </li>
+              <li class="page-item" [class.disabled]="currentPage === totalPages">
+                <button class="page-link" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision Modal -->
+<div class="modal fade" id="decisionModal" tabindex="-1" *ngIf="selectedRequest">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {{ decisionType === 'APPROVED' ? 'Approve' : 'Reject' }} Leave Request
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Employee:</strong> {{ getEmployeeName(selectedRequest) }}<br>
+          <strong>Type:</strong> {{ getLeaveTypeLabel(selectedRequest.leaveType) }}<br>
+          <strong>Dates:</strong> {{ formatDate(selectedRequest.startDate) }} to {{ formatDate(selectedRequest.endDate) }}<br>
+          <strong>Duration:</strong> {{ selectedRequest.days || '-' }} day(s)
+        </div>
+        
+        <div class="mb-3">
+          <label for="managerComment" class="form-label">
+            Comments {{ decisionType === 'REJECTED' ? '(Required)' : '(Optional)' }}
+          </label>
+          <textarea 
+            class="form-control" 
+            id="managerComment" 
+            rows="3" 
+            [(ngModel)]="managerComment"
+            [placeholder]="decisionType === 'APPROVED' ? 'Optional comments for approval...' : 'Please provide a reason for rejection...'"></textarea>
+          <div class="text-danger mt-1" *ngIf="decisionType === 'REJECTED' && !managerComment?.trim()">
+            Comments are required when rejecting a request.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button 
+          type="button" 
+          [class]="'btn ' + (decisionType === 'APPROVED' ? 'btn-success' : 'btn-danger')"
+          (click)="confirmDecision()"
+          [disabled]="isProcessing || (decisionType === 'REJECTED' && !managerComment?.trim())">
+          <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+          {{ isProcessing ? 'Processing...' : (decisionType === 'APPROVED' ? 'Approve Request' : 'Reject Request') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+.error-code h1 {
+  color: #6f42c1;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.container-fluid {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.error-message h2 {
+  color: white;
+}
+
+.text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}

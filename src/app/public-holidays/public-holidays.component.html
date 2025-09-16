@@ -1,0 +1,275 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="fas fa-calendar-alt me-2"></i>
+          Public Holidays
+        </h2>
+        <div class="d-flex gap-2">
+          <button 
+            *ngIf="isAdmin"
+            type="button" 
+            class="btn btn-primary"
+            (click)="showAddForm()"
+            [disabled]="loading">
+            <i class="fas fa-plus me-1"></i>
+            Add Holiday
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary"
+            (click)="exportHolidays()"
+            [disabled]="loading || filteredHolidays.length === 0">
+            <i class="fas fa-download me-1"></i>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Error Alert -->
+      <div *ngIf="error" class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ error }}
+        <button type="button" class="btn-close ms-auto" (click)="error = ''"></button>
+      </div>
+
+      <!-- Filters and Search -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="searchInput" class="form-label">Search Holidays</label>
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="fas fa-search"></i>
+                </span>
+                <input 
+                  type="text" 
+                  id="searchInput"
+                  class="form-control" 
+                  placeholder="Search by name or description..."
+                  [(ngModel)]="searchTerm"
+                  (input)="onSearchChange()">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label for="yearSelect" class="form-label">Filter by Year</label>
+              <select 
+                id="yearSelect"
+                class="form-select" 
+                [(ngModel)]="selectedYear"
+                (change)="onYearChange()">
+                <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button 
+                type="button" 
+                class="btn btn-outline-primary w-100"
+                (click)="sortHolidaysByDate()">
+                <i class="fas fa-sort me-1"></i>
+                Sort by Date
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Holiday Form Modal (inline when showForm is true) -->
+      <div *ngIf="showForm" class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-calendar-plus me-2"></i>
+            {{ editingHoliday ? 'Edit Holiday' : 'Add New Holiday' }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="holidayForm" (ngSubmit)="onSubmit()">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="name" class="form-label">Holiday Name *</label>
+                <input 
+                  type="text" 
+                  id="name"
+                  class="form-control"
+                  [class.is-invalid]="isFieldInvalid('name')"
+                  formControlName="name"
+                  placeholder="e.g., New Year's Day">
+                <div *ngIf="isFieldInvalid('name')" class="invalid-feedback">
+                  {{ getFieldError('name') }}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="date" class="form-label">Date *</label>
+                <input 
+                  type="date" 
+                  id="date"
+                  class="form-control"
+                  [class.is-invalid]="isFieldInvalid('date')"
+                  formControlName="date">
+                <div *ngIf="isFieldInvalid('date')" class="invalid-feedback">
+                  {{ getFieldError('date') }}
+                </div>
+              </div>
+              <div class="col-12">
+                <label for="description" class="form-label">Description</label>
+                <textarea 
+                  id="description"
+                  class="form-control"
+                  rows="3"
+                  [class.is-invalid]="isFieldInvalid('description')"
+                  formControlName="description"
+                  placeholder="Optional description of the holiday"></textarea>
+                <div *ngIf="isFieldInvalid('description')" class="invalid-feedback">
+                  {{ getFieldError('description') }}
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button 
+                type="submit" 
+                class="btn btn-primary"
+                [disabled]="loading || holidayForm.invalid">
+                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                <i *ngIf="!loading" class="fas fa-save me-1"></i>
+                {{ editingHoliday ? 'Update Holiday' : 'Create Holiday' }}
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-secondary"
+                (click)="hideForm()"
+                [disabled]="loading">
+                <i class="fas fa-times me-1"></i>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div *ngIf="loading && !showForm" class="text-center my-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2 text-muted">Loading holidays...</p>
+      </div>
+
+      <!-- Holidays List -->
+      <div *ngIf="!loading" class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              Holidays for {{ selectedYear }}
+              <span class="badge bg-secondary ms-2">{{ totalItems }}</span>
+            </h5>
+            <small class="text-muted">
+              Showing {{ getPaginatedHolidays().length }} of {{ totalItems }} holidays
+            </small>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div *ngIf="filteredHolidays.length === 0" class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No holidays found</h5>
+            <p class="text-muted">
+              {{ searchTerm ? 'Try adjusting your search criteria.' : 'No public holidays are configured for this year.' }}
+            </p>
+            <button 
+              *ngIf="isAdmin && !searchTerm"
+              type="button" 
+              class="btn btn-primary"
+              (click)="showAddForm()">
+              <i class="fas fa-plus me-1"></i>
+              Add First Holiday
+            </button>
+          </div>
+
+          <div *ngIf="filteredHolidays.length > 0" class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Holiday Name</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Day</th>
+                  <th scope="col">Description</th>
+                  <th scope="col" *ngIf="isAdmin" class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let holiday of getPaginatedHolidays()" 
+                    class="holiday-row">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-calendar-day text-primary me-2"></i>
+                      <strong>{{ holiday.name }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">
+                      {{ formatDate(holiday.date) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" 
+                          [class]="getDayOfWeek(holiday.date) === 'Saturday' || getDayOfWeek(holiday.date) === 'Sunday' ? 'bg-info' : 'bg-secondary'">
+                      {{ getDayOfWeek(holiday.date) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-muted">{{ holiday.description || 'No description' }}</span>
+                  </td>
+                  <td *ngIf="isAdmin" class="text-center">
+                    <div class="btn-group btn-group-sm">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-primary"
+                        (click)="showEditForm(holiday)"
+                        title="Edit Holiday">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-danger"
+                        (click)="deleteHoliday(holiday)"
+                        title="Delete Holiday">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <nav *ngIf="getTotalPages() > 1" class="mt-4">
+        <ul class="pagination justify-content-center">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <button class="page-link" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+          </li>
+          
+          <li *ngFor="let page of [].constructor(getTotalPages()); let i = index" 
+              class="page-item" 
+              [class.active]="currentPage === i + 1">
+            <button class="page-link" (click)="changePage(i + 1)">
+              {{ i + 1 }}
+            </button>
+          </li>
+          
+          <li class="page-item" [class.disabled]="currentPage === getTotalPages()">
+            <button class="page-link" (click)="changePage(currentPage + 1)" [disabled]="currentPage === getTotalPages()">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>

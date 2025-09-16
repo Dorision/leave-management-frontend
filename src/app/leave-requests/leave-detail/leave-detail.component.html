@@ -1,0 +1,208 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Leave Request Details</h5>
+          <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
+            <i class="fas fa-arrow-left me-2"></i>
+            Back
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Loading State -->
+          <div class="text-center py-5" *ngIf="isLoading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading leave request details...</p>
+          </div>
+
+          <!-- Error State -->
+          <div class="alert alert-danger" *ngIf="errorMessage">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ errorMessage }}
+            <button class="btn btn-outline-danger btn-sm ms-2" (click)="loadLeaveRequest()">
+              <i class="fas fa-redo me-1"></i>
+              Retry
+            </button>
+          </div>
+
+          <!-- Leave Request Details -->
+          <div *ngIf="!isLoading && !errorMessage && leaveRequest">
+            <!-- Status Banner -->
+            <div class="alert" [class]="'alert-' + getStatusAlertClass(leaveRequest.status)" role="alert">
+              <div class="d-flex align-items-center">
+                <i [class]="'fas ' + getStatusIcon(leaveRequest.status) + ' me-2'"></i>
+                <strong>Status: {{ getStatusLabel(leaveRequest.status) }}</strong>
+                <span [class]="'badge ms-auto ' + getStatusBadgeClass(leaveRequest.status)">
+                  {{ getStatusLabel(leaveRequest.status) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Employee Information -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="card bg-light border-0">
+                  <div class="card-body">
+                    <h6 class="card-title text-muted mb-3">Employee Information</h6>
+                    <div class="mb-2">
+                      <strong>Name:</strong> {{ getEmployeeName(leaveRequest) }}
+                    </div>
+                    <div class="mb-2" *ngIf="leaveRequest.user?.email">
+                      <strong>Email:</strong> {{ leaveRequest.user?.email }}
+                    </div>
+                    <div *ngIf="leaveRequest.user?.department">
+                      <strong>Department:</strong> {{ leaveRequest.user?.department }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card bg-light border-0">
+                  <div class="card-body">
+                    <h6 class="card-title text-muted mb-3">Request Summary</h6>
+                    <div class="mb-2">
+                      <strong>Request ID:</strong> 
+                      <small class="text-muted ms-1">{{ leaveRequest.id.substring(0, 8) }}...</small>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Submitted:</strong> {{ formatDate(leaveRequest.submittedAt) }}
+                    </div>
+                    <div>
+                      <strong>Duration:</strong> {{ leaveRequest.days || '-' }} working day(s)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leave Details -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h6 class="mb-0">Leave Details</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label text-muted">Leave Type</label>
+                    <div class="fw-bold">
+                      <span class="badge bg-info me-2">{{ getLeaveTypeLabel(leaveRequest.leaveType) }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label text-muted">Start Date</label>
+                    <div class="fw-bold">{{ formatDate(leaveRequest.startDate) }}</div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label text-muted">End Date</label>
+                    <div class="fw-bold">{{ formatDate(leaveRequest.endDate) }}</div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted">Reason for Leave</label>
+                  <div class="border rounded p-3 bg-light">{{ leaveRequest.reason }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Approval Information -->
+            <div class="card mb-4" *ngIf="leaveRequest.status !== 'PENDING'">
+              <div class="card-header">
+                <h6 class="mb-0">Approval Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3" *ngIf="leaveRequest.approvedBy || leaveRequest.rejectedBy">
+                    <label class="form-label text-muted">
+                      {{ leaveRequest.status === 'APPROVED' ? 'Approved By' : 'Rejected By' }}
+                    </label>
+                    <div class="fw-bold">{{ leaveRequest.approvedBy || leaveRequest.rejectedBy || 'Manager' }}</div>
+                  </div>
+                  <div class="col-md-6 mb-3" *ngIf="leaveRequest.approvedAt || leaveRequest.rejectedAt">
+                    <label class="form-label text-muted">
+                      {{ leaveRequest.status === 'APPROVED' ? 'Approved On' : 'Rejected On' }}
+                    </label>
+                    <div class="fw-bold">
+                      {{ formatDate(leaveRequest.approvedAt || leaveRequest.rejectedAt || '') }}
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="leaveRequest.managerComment || leaveRequest.rejectionReason">
+                  <label class="form-label text-muted">Manager Comments</label>
+                  <div class="border rounded p-3" 
+                       [class]="leaveRequest.status === 'APPROVED' ? 'bg-light-success' : 'bg-light-danger'">
+                    {{ leaveRequest.managerComment || leaveRequest.rejectionReason }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between">
+              <div>
+                <button class="btn btn-outline-secondary" (click)="goBack()">
+                  <i class="fas fa-arrow-left me-2"></i>
+                  Back to List
+                </button>
+              </div>
+              <div class="d-flex gap-2">
+                <!-- Employee Actions -->
+                <ng-container *ngIf="isCurrentUserRequest(leaveRequest)">
+                  <button 
+                    class="btn btn-warning"
+                    *ngIf="canEdit(leaveRequest)"
+                    (click)="editRequest()">
+                    <i class="fas fa-edit me-2"></i>
+                    Edit Request
+                  </button>
+                  <button 
+                    class="btn btn-danger"
+                    *ngIf="canRetract(leaveRequest)"
+                    (click)="retractRequest()"
+                    [disabled]="isProcessing">
+                    <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+                    <i *ngIf="!isProcessing" class="fas fa-times me-2"></i>
+                    {{ isProcessing ? 'Retracting...' : 'Retract Request' }}
+                  </button>
+                </ng-container>
+
+                <!-- Manager Actions -->
+                <ng-container *ngIf="isManagerRequest() && leaveRequest.status === 'PENDING'">
+                  <button 
+                    class="btn btn-success"
+                    (click)="approveRequest()"
+                    [disabled]="isProcessing">
+                    <span *ngIf="isProcessing && actionType === 'approve'" class="spinner-border spinner-border-sm me-2"></span>
+                    <i *ngIf="!isProcessing || actionType !== 'approve'" class="fas fa-check me-2"></i>
+                    {{ (isProcessing && actionType === 'approve') ? 'Approving...' : 'Approve' }}
+                  </button>
+                  <button 
+                    class="btn btn-danger"
+                    (click)="rejectRequest()"
+                    [disabled]="isProcessing">
+                    <span *ngIf="isProcessing && actionType === 'reject'" class="spinner-border spinner-border-sm me-2"></span>
+                    <i *ngIf="!isProcessing || actionType !== 'reject'" class="fas fa-times me-2"></i>
+                    {{ (isProcessing && actionType === 'reject') ? 'Rejecting...' : 'Reject' }}
+                  </button>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+
+          <!-- Not Found State -->
+          <div class="text-center py-5" *ngIf="!isLoading && !errorMessage && !leaveRequest">
+            <i class="fas fa-search fa-3x mb-3 text-muted opacity-50"></i>
+            <h6 class="text-muted">Leave Request Not Found</h6>
+            <p class="text-muted">The requested leave request could not be found.</p>
+            <button class="btn btn-primary" (click)="goBack()">
+              <i class="fas fa-arrow-left me-2"></i>
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

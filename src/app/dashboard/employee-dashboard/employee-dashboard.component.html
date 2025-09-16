@@ -1,0 +1,200 @@
+<div class="container-fluid py-4">
+  <!-- Welcome Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="welcome-header bg-primary text-white rounded p-4">
+        <h1 class="h3 mb-1">Welcome back, {{ currentUser?.firstName }}!</h1>
+        <p class="mb-0 opacity-75">Manage your leave requests and view your balance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-primary bg-opacity-10 rounded p-3">
+                <i class="fas fa-calendar-plus text-primary fa-2x"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="card-title text-muted mb-1">Pending Requests</h6>
+              <h3 class="mb-0">{{ stats.pendingRequests }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-success bg-opacity-10 rounded p-3">
+                <i class="fas fa-check-circle text-success fa-2x"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="card-title text-muted mb-1">Approved Requests</h6>
+              <h3 class="mb-0">{{ stats.approvedRequests }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-info bg-opacity-10 rounded p-3">
+                <i class="fas fa-calendar-day text-info fa-2x"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="card-title text-muted mb-1">Remaining Days</h6>
+              <h3 class="mb-0">{{ stats.remainingDays }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-warning bg-opacity-10 rounded p-3">
+                <i class="fas fa-clock text-warning fa-2x"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="card-title text-muted mb-1">Used Days</h6>
+              <h3 class="mb-0">{{ stats.usedDays }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions & Recent Requests -->
+  <div class="row">
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="card-title mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-3">
+            <button 
+              type="button" 
+              class="btn btn-primary btn-lg"
+              routerLink="/employee/leave-requests/create"
+            >
+              <i class="fas fa-plus me-2"></i>
+              Create Leave Request
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn btn-outline-primary"
+              routerLink="/employee/leave-requests"
+            >
+              <i class="fas fa-list me-2"></i>
+              View All Requests
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn btn-outline-secondary"
+              routerLink="/public-holidays"
+            >
+              <i class="fas fa-star me-2"></i>
+              Public Holidays
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Recent Leave Requests</h5>
+          <a routerLink="/employee/leave-requests" class="btn btn-sm btn-outline-primary">
+            View All
+          </a>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+
+          <div *ngIf="!isLoading && recentRequests.length === 0" class="text-center py-4 text-muted">
+            <i class="fas fa-calendar-alt fa-3x mb-3 opacity-50"></i>
+            <p>No leave requests yet</p>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              routerLink="/employee/leave-requests/create"
+            >
+              Create Your First Request
+            </button>
+          </div>
+
+          <div *ngIf="!isLoading && recentRequests.length > 0" class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Type</th>
+                  <th>Dates</th>
+                  <th>Days</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let request of recentRequests">
+                  <td>
+                    <span class="fw-medium">{{ getLeaveTypeLabel(request.leaveType) }}</span>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      {{ formatDate(request.startDate) }} - {{ formatDate(request.endDate) }}
+                    </small>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">{{ request.days }} days</span>
+                  </td>
+                  <td>
+                    <span [class]="'badge ' + getStatusBadgeClass(request.status)">
+                      {{ getStatusLabel(request.status) }}
+                    </span>
+                  </td>
+                  <td>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-outline-primary"
+                      [routerLink]="['/employee/leave-requests', request.id]"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

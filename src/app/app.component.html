@@ -1,0 +1,12 @@
+<div class="app-container">
+  <!-- Navigation (hidden on login page) -->
+  <app-navbar *ngIf="showNavbar"></app-navbar>
+  
+  <!-- Main Content -->
+  <main class="main-content" [class.with-navbar]="showNavbar">
+    <router-outlet></router-outlet>
+  </main>
+  
+  <!-- Global Notifications -->
+  <app-notification></app-notification>
+</div>
