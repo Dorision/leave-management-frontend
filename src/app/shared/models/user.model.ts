@@ -16,9 +16,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: User;
-  expiresIn: number;
+  success: boolean;
+  token: string | null;
+  message?: string;
+  user?: User;
+  roles?: string[];
+  expiresIn?: number;
 }
 
 export interface AuthUser {

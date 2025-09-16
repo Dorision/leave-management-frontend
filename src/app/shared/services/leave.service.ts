@@ -46,7 +46,7 @@ export interface ApproveRejectRequest {
   providedIn: 'root'
 })
 export class LeaveService {
-  private readonly API_URL = 'http://localhost:3000/api'; // This should be from environment
+  private readonly API_URL = 'http://localhost:5254/api'; // Direct backend URL
 
   constructor(private http: HttpClient) { }
 

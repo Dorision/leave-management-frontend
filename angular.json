@@ -68,7 +68,8 @@
               "buildTarget": "leave-management-frontend:build:production"
             },
             "development": {
-              "buildTarget": "leave-management-frontend:build:development"
+              "buildTarget": "leave-management-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

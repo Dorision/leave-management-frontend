@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../auth/services/auth.service';
 import { LeaveService } from '../../shared/services/leave.service';
 import { AuthUser, LeaveRequest } from '../../shared/models';
+import { getLeaveTypeLabel, getStatusLabel, getStatusBadgeClass, formatDate } from '../../shared/utils/type-helpers.util';
 
 @Component({
   selector: 'app-manager-dashboard',
@@ -62,26 +63,9 @@ export class ManagerDashboardComponent implements OnInit {
     return 'Unknown Employee';
   }
 
-  getLeaveTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-      'ANNUAL': 'Annual Leave',
-      'SICK': 'Sick Leave',
-      'MATERNITY': 'Maternity Leave',
-      'PATERNITY': 'Paternity Leave',
-      'STUDY': 'Study Leave',
-      'FAMILY_RESPONSIBILITY': 'Family Responsibility',
-      'UNPAID': 'Unpaid Leave'
-    };
-    return labels[type] || type;
-  }
-
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
+  // Use utility functions for type-safe operations
+  getLeaveTypeLabel = getLeaveTypeLabel;
+  formatDate = formatDate;
 
   quickApprove(request: LeaveRequest): void {
     // TODO: Implement quick approve functionality

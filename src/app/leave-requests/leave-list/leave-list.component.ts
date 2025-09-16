@@ -8,11 +8,10 @@ import {
   LeaveType, 
   LeaveStatus, 
   LEAVE_TYPE_LABELS, 
-  LEAVE_STATUS_LABELS,
+  LEAVE_STATUS_LABELS, 
   LEAVE_STATUS_BADGES 
 } from '../../shared/models';
-
-@Component({
+import { getStatusFromValue, getLeaveTypeFromValue, getDateStringValue } from '../../shared/utils/type-helpers.util';@Component({
   selector: 'app-leave-list',
   standalone: true,
   imports: [CommonModule, FormsModule],
@@ -20,6 +19,10 @@ import {
   styleUrls: ['./leave-list.component.css']
 })
 export class LeaveListComponent implements OnInit {
+  // Expose enums to template
+  LeaveType = LeaveType;
+  LeaveStatus = LeaveStatus;
+
   leaveRequests: LeaveRequest[] = [];
   filteredRequests: LeaveRequest[] = [];
   paginatedRequests: LeaveRequest[] = [];
@@ -78,8 +81,8 @@ export class LeaveListComponent implements OnInit {
     this.leaveService.getMyLeaveRequests().subscribe({
       next: (requests) => {
         this.leaveRequests = requests.sort((a, b) => 
-          new Date(b.submittedAt || '').getTime() - 
-          new Date(a.submittedAt || '').getTime()
+          new Date(b.submittedAt || b.createdAt || '').getTime() - 
+          new Date(a.submittedAt || a.createdAt || '').getTime()
         );
         this.filterRequests();
         this.isLoading = false;
@@ -94,10 +97,10 @@ export class LeaveListComponent implements OnInit {
 
   filterRequests(): void {
     this.filteredRequests = this.leaveRequests.filter(request => {
-      const matchesStatus = !this.selectedStatus || request.status === this.selectedStatus;
+      const matchesStatus = !this.selectedStatus || this.getStatusFromValue(request.status) === this.selectedStatus;
       const matchesType = !this.selectedType || request.leaveType === this.selectedType;
       const matchesSearch = !this.searchTerm || 
-        request.reason.toLowerCase().includes(this.searchTerm.toLowerCase());
+        (request.reason || '').toLowerCase().includes(this.searchTerm.toLowerCase());
       
       return matchesStatus && matchesType && matchesSearch;
     });
@@ -145,22 +148,22 @@ export class LeaveListComponent implements OnInit {
   }
 
   createNewRequest(): void {
-    this.router.navigate(['/leave-requests/create']);
+    this.router.navigate(['create'], { relativeTo: this.route });
   }
 
   viewDetails(request: LeaveRequest): void {
-    this.router.navigate(['/leave-requests/detail', request.id]);
+    this.router.navigate([request.id], { relativeTo: this.route });
   }
 
   editRequest(request: LeaveRequest): void {
-    this.router.navigate(['/leave-requests/edit', request.id]);
+    this.router.navigate(['edit', request.id], { relativeTo: this.route });
   }
 
   retractRequest(request: LeaveRequest): void {
     this.requestToRetract = request;
     // In a real app, you'd use a modal service or bootstrap modal
     // For now, we'll call confirmRetract directly
-    if (confirm(`Are you sure you want to retract your leave request for ${this.getLeaveTypeLabel(request.leaveType)}?`)) {
+    if (confirm(`Are you sure you want to retract your leave request for ${this.getLeaveTypeLabel(request.leaveType || LeaveType.ANNUAL)}?`)) {
       this.confirmRetract();
     }
   }
@@ -193,37 +196,45 @@ export class LeaveListComponent implements OnInit {
 
   // Helper methods
   canEdit(request: LeaveRequest): boolean {
-    return request.status === LeaveStatus.PENDING;
+    return this.getStatusFromValue(request.status) === LeaveStatus.PENDING;
   }
 
   canRetract(request: LeaveRequest): boolean {
-    return request.status === LeaveStatus.PENDING;
+    return this.getStatusFromValue(request.status) === LeaveStatus.PENDING;
   }
 
-  getLeaveTypeLabel(type: LeaveType): string {
-    return LEAVE_TYPE_LABELS[type] || type;
+  getLeaveTypeLabel(type: LeaveType | string | undefined): string {
+    const safeType = getLeaveTypeFromValue(type);
+    return LEAVE_TYPE_LABELS[safeType] || safeType.toString();
   }
 
-  getStatusLabel(status: LeaveStatus): string {
-    return LEAVE_STATUS_LABELS[status] || status;
+  getStatusLabel(status: LeaveStatus | number | undefined): string {
+    const safeStatus = getStatusFromValue(status);
+    return LEAVE_STATUS_LABELS[safeStatus] || safeStatus.toString();
   }
 
-  getStatusBadgeClass(status: LeaveStatus): string {
-    return LEAVE_STATUS_BADGES[status] || 'bg-secondary';
+  getStatusBadgeClass(status: LeaveStatus | number | undefined): string {
+    const safeStatus = getStatusFromValue(status);
+    return LEAVE_STATUS_BADGES[safeStatus] || 'bg-secondary';
   }
 
-  formatDate(dateString: string): string {
-    if (!dateString) return '';
+  getStatusFromValue(status: LeaveStatus | number | undefined): LeaveStatus {
+    return getStatusFromValue(status);
+  }
+
+  formatDate(dateString: string | undefined): string {
+    const safeDateString = getDateStringValue(dateString);
+    if (!safeDateString) return '';
     
     try {
-      const date = new Date(dateString);
+      const date = new Date(safeDateString);
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
     } catch {
-      return dateString;
+      return safeDateString;
     }
   }
 

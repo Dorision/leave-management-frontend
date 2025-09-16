@@ -15,7 +15,7 @@ import { AuthService } from '../../auth/services/auth.service';
   providedIn: 'root'
 })
 export class LeaveRequestService {
-  private readonly API_URL = 'http://localhost:5000/api/leaves';
+  private readonly API_URL = 'http://localhost:5254/api/leaves'; // Direct backend URL
 
   constructor(
     private http: HttpClient,

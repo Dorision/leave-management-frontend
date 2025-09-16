@@ -36,6 +36,10 @@ export const routes: Routes = [
             loadComponent: () => import('./leave-requests/leave-edit/leave-edit.component').then(c => c.LeaveEditComponent)
           },
           {
+            path: 'detail/:id',
+            redirectTo: ':id'
+          },
+          {
             path: ':id',
             loadComponent: () => import('./leave-requests/leave-detail/leave-detail.component').then(c => c.LeaveDetailComponent)
           }
@@ -44,6 +48,10 @@ export const routes: Routes = [
       {
         path: 'profile',
         loadComponent: () => import('./shared/components/profile/profile.component').then(c => c.ProfileComponent)
+      },
+      {
+        path: 'public-holidays',
+        loadComponent: () => import('./public-holidays/public-holidays.component').then(c => c.PublicHolidaysComponent)
       }
     ]
   },
@@ -67,12 +75,31 @@ export const routes: Routes = [
             loadComponent: () => import('./leave-requests/leave-detail/leave-detail.component').then(c => c.LeaveDetailComponent)
           }
         ]
+      },
+      {
+        path: 'public-holidays',
+        loadComponent: () => import('./public-holidays/public-holidays.component').then(c => c.PublicHolidaysComponent)
       }
     ]
   },
   {
-    path: 'unauthorized',
-    loadComponent: () => import('./shared/components/unauthorized/unauthorized.component').then(c => c.UnauthorizedComponent)
+    path: 'public-holidays',
+    canActivate: [authGuard],
+    loadComponent: () => import('./public-holidays/public-holidays.component').then(c => c.PublicHolidaysComponent)
+  },
+  {
+    path: 'leave-requests',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'detail/:id',
+        loadComponent: () => import('./leave-requests/leave-detail/leave-detail.component').then(c => c.LeaveDetailComponent)
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./leave-requests/leave-detail/leave-detail.component').then(c => c.LeaveDetailComponent)
+      }
+    ]
   },
   { 
     path: '**', 

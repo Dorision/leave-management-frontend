@@ -14,6 +14,7 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     }
 
     const userRole = authService.getCurrentUser()?.role;
+    
     if (userRole && allowedRoles.includes(userRole)) {
       return true;
     } else {

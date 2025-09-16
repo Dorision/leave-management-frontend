@@ -9,7 +9,7 @@ import { AuthService } from '../../auth/services/auth.service';
   providedIn: 'root'
 })
 export class PublicHolidayService {
-  private readonly API_URL = 'http://localhost:5000/api/publicholidays';
+  private readonly API_URL = 'http://localhost:5254/api/publicholidays'; // Direct backend URL
 
   constructor(
     private http: HttpClient,

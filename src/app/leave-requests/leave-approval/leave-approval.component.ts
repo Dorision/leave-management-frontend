@@ -11,6 +11,7 @@ import {
   LEAVE_STATUS_BADGES,
   LeaveDecision
 } from '../../shared/models';
+import { getLeaveTypeLabel, getStatusLabel, getStatusBadgeClass, formatDate, getStatusFromValue } from '../../shared/utils/type-helpers.util';
 
 @Component({
   selector: 'app-leave-approval',
@@ -222,39 +223,19 @@ export class LeaveApprovalComponent implements OnInit {
     return 'Unknown Employee';
   }
 
-  getLeaveTypeLabel(type: LeaveType): string {
-    return LEAVE_TYPE_LABELS[type] || type;
-  }
+  // Use utility functions for type-safe operations
+  getLeaveTypeLabel = getLeaveTypeLabel;
+  getStatusLabel = getStatusLabel;
+  getStatusBadgeClass = getStatusBadgeClass;
+  formatDate = formatDate;
 
-  getStatusLabel(status: LeaveStatus): string {
-    return LEAVE_STATUS_LABELS[status] || status;
-  }
-
-  getStatusBadgeClass(status: LeaveStatus): string {
-    return LEAVE_STATUS_BADGES[status] || 'bg-secondary';
-  }
-
-  getStatusColor(status: LeaveStatus): string {
-    switch (status) {
+  getStatusColor(status: LeaveStatus | number | undefined): string {
+    const safeStatus = getStatusFromValue(status);
+    switch (safeStatus) {
       case LeaveStatus.PENDING: return 'warning';
       case LeaveStatus.APPROVED: return 'success';
       case LeaveStatus.REJECTED: return 'danger';
       default: return 'secondary';
-    }
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return '';
-    
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
     }
   }
 

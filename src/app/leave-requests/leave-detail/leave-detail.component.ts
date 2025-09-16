@@ -13,6 +13,7 @@ import {
   LeaveDecision,
   UserRole
 } from '../../shared/models';
+import { getLeaveTypeLabel, getStatusLabel, getStatusBadgeClass, formatDate, getStatusFromValue } from '../../shared/utils/type-helpers.util';
 
 @Component({
   selector: 'app-leave-detail',
@@ -197,26 +198,47 @@ export class LeaveDetailComponent implements OnInit {
 
   // Helper methods
   getEmployeeName(request: LeaveRequest): string {
-    if (request.user) {
-      return `${request.user.firstName || ''} ${request.user.lastName || ''}`.trim();
+    // If this is the current user's request, use their info from auth service
+    if (this.isCurrentUserRequest(request)) {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        return `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email || 'Current User';
+      }
     }
+    
+    // Otherwise use the request's user info
+    if (request.user) {
+      const fullName = `${request.user.firstName || ''} ${request.user.lastName || ''}`.trim();
+      if (fullName) {
+        return fullName;
+      }
+      
+      // Fallback to extracting name from email if available
+      if (request.user.email) {
+        const emailName = request.user.email.split('@')[0];
+        const nameParts = emailName.split('.');
+        const firstName = nameParts[0] ? this.capitalizeFirst(nameParts[0]) : '';
+        const lastName = nameParts[1] ? this.capitalizeFirst(nameParts[1]) : '';
+        return `${firstName} ${lastName}`.trim() || request.user.email;
+      }
+    }
+    
     return 'Unknown Employee';
   }
 
-  getLeaveTypeLabel(type: LeaveType): string {
-    return LEAVE_TYPE_LABELS[type] || type;
+  private capitalizeFirst(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
 
-  getStatusLabel(status: LeaveStatus): string {
-    return LEAVE_STATUS_LABELS[status] || status;
-  }
+  // Use utility functions for type-safe operations
+  getLeaveTypeLabel = getLeaveTypeLabel;
+  getStatusLabel = getStatusLabel;
+  getStatusBadgeClass = getStatusBadgeClass;
+  formatDate = formatDate;
 
-  getStatusBadgeClass(status: LeaveStatus): string {
-    return LEAVE_STATUS_BADGES[status] || 'bg-secondary';
-  }
-
-  getStatusAlertClass(status: LeaveStatus): string {
-    switch (status) {
+  getStatusAlertClass(status: LeaveStatus | number | undefined): string {
+    const safeStatus = getStatusFromValue(status);
+    switch (safeStatus) {
       case LeaveStatus.PENDING: return 'warning';
       case LeaveStatus.APPROVED: return 'success';
       case LeaveStatus.REJECTED: return 'danger';
@@ -225,28 +247,14 @@ export class LeaveDetailComponent implements OnInit {
     }
   }
 
-  getStatusIcon(status: LeaveStatus): string {
-    switch (status) {
+  getStatusIcon(status: LeaveStatus | number | undefined): string {
+    const safeStatus = getStatusFromValue(status);
+    switch (safeStatus) {
       case LeaveStatus.PENDING: return 'fa-clock';
       case LeaveStatus.APPROVED: return 'fa-check-circle';
       case LeaveStatus.REJECTED: return 'fa-times-circle';
       case LeaveStatus.CANCELLED: return 'fa-ban';
       default: return 'fa-info-circle';
-    }
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return '';
-    
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
     }
   }
 }

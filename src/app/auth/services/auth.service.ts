@@ -11,12 +11,13 @@ import {
   UserRole, 
   ApiResponse 
 } from '../../shared/models';
+import { decodeJWT } from '../../shared/utils/jwt.util';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:5000/api/auth'; // Updated to match .NET backend
+  private readonly API_URL = 'http://localhost:5254/api/Auth'; // Direct backend URL for development
   private readonly TOKEN_KEY = 'leave_management_token';
   private readonly USER_KEY = 'leave_management_user';
 
@@ -27,6 +28,7 @@ export class AuthService {
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   private isBrowser: boolean;
+  public loginEmail: string = ''; // Store login email temporarily
 
   constructor(
     private http: HttpClient,
@@ -49,19 +51,49 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<ApiResponse<LoginResponse>>(`${this.API_URL}/login`, credentials)
+    return this.http.post<LoginResponse>(`${this.API_URL}/login`, credentials)
       .pipe(
         map(response => {
-          if (!response.success || !response.data) {
+          if (!response.success || !response.token) {
             throw new Error(response.message || 'Login failed');
           }
-          return response.data;
+          return response;
         }),
         tap(loginResponse => {
-          this.setToken(loginResponse.token);
-          this.setUser(loginResponse.user);
-          this.currentUserSubject.next(loginResponse.user);
-          this.isAuthenticatedSubject.next(true);
+          if (loginResponse.token) {
+            this.setToken(loginResponse.token!);
+            
+            // Decode JWT to extract user information
+            const decodedToken = decodeJWT(loginResponse.token);
+            
+            if (decodedToken) {
+              // Extract role from JWT or response
+              const role = this.mapRole(
+                decodedToken.role || 
+                decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 
+                loginResponse.roles || 
+                ''
+              );
+              
+              // If JWT doesn't contain user info, we need to make an API call to get user profile
+              if (!decodedToken.email && !decodedToken.unique_name && !decodedToken.given_name) {
+                this.fetchUserProfile(role);
+              } else {
+                // Extract user information from JWT
+                const user: AuthUser = {
+                  id: decodedToken.sub || decodedToken.id || decodedToken.userId || decodedToken.nameid || 'unknown',
+                  firstName: decodedToken.given_name || decodedToken.firstName || decodedToken.name?.split(' ')[0] || 'User',
+                  lastName: decodedToken.family_name || decodedToken.lastName || decodedToken.name?.split(' ')[1] || '',
+                  email: decodedToken.email || decodedToken.unique_name || decodedToken.preferred_username || 'user@example.com',
+                  role: role
+                };
+                
+                this.setUser(user);
+                this.currentUserSubject.next(user);
+                this.isAuthenticatedSubject.next(true);
+              }
+            }
+          }
         }),
         catchError(error => {
           console.error('Login error:', error);
@@ -135,19 +167,21 @@ export class AuthService {
   }
 
   refreshToken(): Observable<LoginResponse> {
-    return this.http.post<ApiResponse<LoginResponse>>(`${this.API_URL}/refresh`, {})
+    return this.http.post<LoginResponse>(`${this.API_URL}/refresh`, {})
       .pipe(
         map(response => {
-          if (!response.success || !response.data) {
+          if (!response.success || !response.token) {
             throw new Error(response.message || 'Token refresh failed');
           }
-          return response.data;
+          return response;
         }),
         tap(loginResponse => {
-          this.setToken(loginResponse.token);
-          this.setUser(loginResponse.user);
-          this.currentUserSubject.next(loginResponse.user);
-          this.isAuthenticatedSubject.next(true);
+          if (loginResponse.token && loginResponse.user) {
+            this.setToken(loginResponse.token!);
+            this.setUser(loginResponse.user as AuthUser);
+            this.currentUserSubject.next(loginResponse.user as AuthUser);
+            this.isAuthenticatedSubject.next(true);
+          }
         }),
         catchError(error => {
           console.error('Token refresh error:', error);
@@ -196,7 +230,9 @@ export class AuthService {
 
   getRedirectUrl(): string {
     const user = this.getCurrentUser();
-    if (!user) return '/login';
+    if (!user) {
+      return '/login';
+    }
     
     switch (user.role) {
       case UserRole.EMPLOYEE:
@@ -209,5 +245,77 @@ export class AuthService {
       default:
         return '/login';
     }
+  }
+
+  private mapRole(roleData: string | string[] | any): UserRole {
+    // Handle different role formats from backend
+    let roleString: string = '';
+    
+    if (Array.isArray(roleData)) {
+      // If it's an array, take the first role
+      roleString = roleData.length > 0 ? String(roleData[0]) : '';
+    } else if (typeof roleData === 'string') {
+      roleString = roleData;
+    } else {
+      // Convert to string if it's some other type
+      roleString = String(roleData || '');
+    }
+    
+    const normalizedRole = roleString.toUpperCase().trim();
+    
+    switch (normalizedRole) {
+      case 'EMPLOYEE':
+        return UserRole.EMPLOYEE;
+      case 'MANAGER':
+        return UserRole.MANAGER;
+      case 'HR':
+        return UserRole.HR;
+      case 'ADMIN':
+      case 'ADMINISTRATOR':
+        return UserRole.ADMIN;
+      default:
+        console.warn('Unknown role received from backend:', roleData);
+        return UserRole.EMPLOYEE; // Default to employee
+    }
+  }
+
+  private fetchUserProfile(role: UserRole): void {
+    // Try to fetch user profile from API first
+    this.http.get<any>(`${this.API_URL}/profile`).subscribe({
+      next: (profileResponse) => {
+        const user: AuthUser = {
+          id: profileResponse.id || profileResponse.userId || 'unknown',
+          firstName: profileResponse.firstName || profileResponse.given_name || 'User',
+          lastName: profileResponse.lastName || profileResponse.family_name || '',
+          email: profileResponse.email || this.loginEmail || 'user@example.com',
+          role: role
+        };
+        
+        this.setUser(user);
+        this.currentUserSubject.next(user);
+        this.isAuthenticatedSubject.next(true);
+      },
+      error: (error) => {
+        // Create a user with the login email and extract name from it
+        const emailName = this.loginEmail ? this.loginEmail.split('@')[0] : 'user';
+        const nameParts = emailName.split('.');
+        
+        const user: AuthUser = {
+          id: 'unknown',
+          firstName: nameParts[0] ? this.capitalizeFirst(nameParts[0]) : 'User',
+          lastName: nameParts[1] ? this.capitalizeFirst(nameParts[1]) : '',
+          email: this.loginEmail || 'user@example.com',
+          role: role
+        };
+        
+        this.setUser(user);
+        this.currentUserSubject.next(user);
+        this.isAuthenticatedSubject.next(true);
+      }
+    });
+  }
+
+  private capitalizeFirst(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
 }

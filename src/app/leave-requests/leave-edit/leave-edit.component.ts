@@ -14,6 +14,7 @@ import {
   LEAVE_STATUS_BADGES,
   UserRole
 } from '../../shared/models';
+import { getLeaveTypeLabel, getStatusLabel, getStatusBadgeClass, formatDate } from '../../shared/utils/type-helpers.util';
 
 @Component({
   selector: 'app-leave-edit',
@@ -214,8 +215,9 @@ export class LeaveEditComponent implements OnInit {
 
       this.leaveService.updateLeaveRequest(this.originalRequest.id, updateRequest).subscribe({
         next: (response) => {
-          // Show success message and navigate back
-          this.router.navigate(['/leave-requests/list'], { 
+          // Show success message and navigate back to dashboard
+          const dashboardRoute = this.authService.getRedirectUrl();
+          this.router.navigate([dashboardRoute], { 
             queryParams: { message: 'Leave request updated successfully!' }
           });
         },
@@ -238,31 +240,9 @@ export class LeaveEditComponent implements OnInit {
     this.location.back();
   }
 
-  // Helper methods
-  getLeaveTypeLabel(type: LeaveType | string): string {
-    return LEAVE_TYPE_LABELS[type as LeaveType] || type;
-  }
-
-  getStatusLabel(status: LeaveStatus): string {
-    return LEAVE_STATUS_LABELS[status] || status;
-  }
-
-  getStatusBadgeClass(status: LeaveStatus): string {
-    return LEAVE_STATUS_BADGES[status] || 'bg-secondary';
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return '';
-    
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  }
+  // Use utility functions for type-safe operations
+  getLeaveTypeLabel = getLeaveTypeLabel;
+  getStatusLabel = getStatusLabel;
+  getStatusBadgeClass = getStatusBadgeClass;
+  formatDate = formatDate;
 }

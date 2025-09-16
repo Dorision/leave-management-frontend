@@ -1,25 +1,32 @@
 export interface LeaveRequest {
   id: string;
-  userId: string;
+  userId?: string;
+  employeeId?: string;  // Backend uses employeeId
+  employeeName?: string; // Backend includes employee name directly
   user?: {
     firstName: string;
     lastName: string;
     email: string;
     department?: string;
   };
-  leaveType: LeaveType;
+  leaveType?: LeaveType;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
-  days: number;
-  reason: string;
-  status: LeaveStatus;
-  submittedAt: string; // ISO date string
+  days?: number;           // Frontend property
+  daysRequested?: number;  // Backend property
+  reason?: string;
+  status: LeaveStatus;    // Keep as enum for now to avoid breaking changes
+  submittedAt?: string; // ISO date string
+  createdAt?: string;   // Backend uses createdAt
   approvedBy?: string;
   approvedAt?: string; // ISO date string
   rejectedBy?: string;
   rejectedAt?: string; // ISO date string
   rejectionReason?: string;
   managerComment?: string;
+  comment?: string;     // Backend uses comment
+  decisionAt?: string;  // Backend includes decision date
+  decisionBy?: string;  // Backend includes decision maker
 }
 
 export interface CreateLeaveRequest {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LeaveRequestService } from '../services/leave-request.service';
+import { AuthService } from '../../auth/services/auth.service';
 import { LeaveType, LEAVE_TYPE_LABELS, CreateLeaveRequest } from '../../shared/models';
 
 @Component({
@@ -23,6 +24,7 @@ export class LeaveCreateComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private leaveService: LeaveRequestService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -98,8 +100,9 @@ export class LeaveCreateComponent implements OnInit {
 
       this.leaveService.createLeaveRequest(leaveRequest).subscribe({
         next: (response) => {
-          // Show success message and navigate to leave list
-          this.router.navigate(['/leave-requests/list'], { 
+          // Show success message and navigate back to dashboard
+          const dashboardRoute = this.authService.getRedirectUrl();
+          this.router.navigate([dashboardRoute], { 
             queryParams: { message: 'Leave request submitted successfully!' }
           });
         },
@@ -117,6 +120,7 @@ export class LeaveCreateComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/leave-requests/list']);
+    const dashboardRoute = this.authService.getRedirectUrl();
+    this.router.navigate([dashboardRoute]);
   }
 }

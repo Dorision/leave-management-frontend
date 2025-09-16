@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../auth/services/auth.service';
 import { LeaveService } from '../../shared/services/leave.service';
 import { AuthUser, LeaveRequest, LeaveBalance } from '../../shared/models';
+import { getLeaveTypeLabel, getStatusLabel, getStatusBadgeClass, formatDate } from '../../shared/utils/type-helpers.util';
 
 @Component({
   selector: 'app-employee-dashboard',
@@ -55,44 +56,9 @@ export class EmployeeDashboardComponent implements OnInit {
     }
   }
 
-  getLeaveTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-      'ANNUAL': 'Annual Leave',
-      'SICK': 'Sick Leave',
-      'MATERNITY': 'Maternity Leave',
-      'PATERNITY': 'Paternity Leave',
-      'STUDY': 'Study Leave',
-      'FAMILY_RESPONSIBILITY': 'Family Responsibility',
-      'UNPAID': 'Unpaid Leave'
-    };
-    return labels[type] || type;
-  }
-
-  getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      'PENDING': 'Pending',
-      'APPROVED': 'Approved',
-      'REJECTED': 'Rejected',
-      'CANCELLED': 'Cancelled'
-    };
-    return labels[status] || status;
-  }
-
-  getStatusBadgeClass(status: string): string {
-    const classes: Record<string, string> = {
-      'PENDING': 'bg-warning text-dark',
-      'APPROVED': 'bg-success',
-      'REJECTED': 'bg-danger',
-      'CANCELLED': 'bg-secondary'
-    };
-    return classes[status] || 'bg-secondary';
-  }
-
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
+  // Use utility functions for type-safe operations
+  getLeaveTypeLabel = getLeaveTypeLabel;
+  getStatusLabel = getStatusLabel;
+  getStatusBadgeClass = getStatusBadgeClass;
+  formatDate = formatDate;
 }

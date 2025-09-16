@@ -66,12 +66,16 @@ export class LoginComponent implements OnInit {
       password: this.loginForm.value.password
     };
 
+    // Store the email for user creation if JWT doesn't contain user info
+    (this.authService as any).loginEmail = loginRequest.email;
+
     this.authService.login(loginRequest).subscribe({
       next: (response) => {
         this.redirectToDashboard();
         this.isLoading = false;
       },
       error: (error) => {
+        console.error('Login error:', error);
         this.handleLoginError(error);
         this.isLoading = false;
       }

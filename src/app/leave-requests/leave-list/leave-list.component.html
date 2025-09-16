@@ -103,11 +103,11 @@
                     <span class="badge bg-info">{{ getLeaveTypeLabel(request.leaveType) }}</span>
                   </td>
                   <td>
-                    <div class="fw-medium">{{ formatDate(request.startDate) }}</div>
-                    <small class="text-muted">to {{ formatDate(request.endDate) }}</small>
+                    <div class="fw-medium">{{ formatDate(request.startDate) || 'No start date' }}</div>
+                    <small class="text-muted">to {{ formatDate(request.endDate) || 'No end date' }}</small>
                   </td>
                   <td>
-                    <span class="fw-medium">{{ request.days || '-' }}</span>
+                    <span class="fw-medium">{{ request.daysRequested || request.days || 'N/A' }}</span>
                   </td>
                   <td>
                     <span [class]="'badge ' + getStatusBadgeClass(request.status)">
@@ -115,7 +115,7 @@
                     </span>
                   </td>
                   <td>
-                    <small class="text-muted">{{ formatDate(request.submittedAt) }}</small>
+                    <small class="text-muted">{{ formatDate(request.submittedAt || request.createdAt) || 'Unknown' }}</small>
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm" role="group">
@@ -183,9 +183,9 @@
       <div class="modal-body">
         <p>Are you sure you want to retract your leave request?</p>
         <div class="bg-light p-3 rounded">
-          <strong>{{ getLeaveTypeLabel(requestToRetract.leaveType) }}</strong><br>
+          <strong>{{ getLeaveTypeLabel(requestToRetract?.leaveType) }}</strong><br>
           <small class="text-muted">
-            {{ formatDate(requestToRetract.startDate) }} to {{ formatDate(requestToRetract.endDate) }}
+            {{ formatDate(requestToRetract?.startDate) }} to {{ formatDate(requestToRetract?.endDate) }}
           </small>
         </div>
         <p class="mt-2 mb-0"><small class="text-muted">This action cannot be undone.</small></p>
